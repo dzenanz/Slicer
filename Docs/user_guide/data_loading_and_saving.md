@@ -102,6 +102,7 @@ Readers may support 2D, 3D, and 4D images of various types, such as scalar, vect
 - **PNG** (.png): can read single/series of frames, can write a single frame
 - **JPEG** (.jpg, .jpeg): can read single/series of frames, can write a single frame
 - **Windows bitmap** (.bmp): can read single/series of frames
+- **numpy** (.npy): read the last 3 dimensions of an array, writing not supported.
 - **BioRad** (.pic)
 - **Brains2** (.mask)
 - **GIPL** (.gipl, .gipl.gz)
