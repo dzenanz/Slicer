@@ -17,7 +17,7 @@ class NumpyDataLoader(ScriptedLoadableModule):
         ]
         parent.helpText = textwrap.dedent(
             """
-        Reader for numpy `.npy` files.
+        Reader for numpy `.npy/.npz` files.
         A `vtkMRMLScalarVolumeNode` named after the filename is added to the scene.
         See https://numpy.org/devdocs/reference/generated/numpy.lib.format.html#npy-format
         Only the three dimensions with fastest changing index are loaded.
@@ -49,34 +49,49 @@ class NumpyDataLoaderFileReader:
         return "numpy"
 
     def extensions(self):
-        return ["numpy (*.npy)"]
+        return ["numpy (*.npy *.npz)"]
 
     def canLoadFile(self, filePath):
-        return filePath[-4:] == ".npy"
+        return filePath[-4:] == ".npy" or filePath[-4:] == ".npz"
 
     def load(self, properties):
         """
         uses properties:
-            fileName - path to the .npy file
+            fileName - path to the .npy/.npz file
         """
         try:
             import numpy
 
             file_path = properties["fileName"]
 
+            name_parts = os.path.splitext(os.path.basename(file_path))
+            if name_parts[-1] == ".npy":
+                numpy_image = numpy.load(file_path)
+            else:  # .npz
+                loaded = numpy.load(file_path)
+                first_array = next(iter(loaded.items()))
+                numpy_image = first_array[1]
+                if len(loaded) > 1:
+                    logging.warning("Only the first array loaded from %s", file_path)
+
             # Get node base name from filename
             if "name" in properties.keys():
                 base_name = properties["name"]
             else:
-                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                base_name = name_parts[0]
             base_name = slicer.mrmlScene.GenerateUniqueName(base_name)
             scalar_volume = slicer.mrmlScene.AddNewNodeByClass(
                 "vtkMRMLScalarVolumeNode", base_name
             )
 
-            numpy_image = numpy.load(file_path)
-            vtk_image = vtk.vtkImageData()
+            original_shape = numpy_image.shape
+            logging.info("Original shape: %r", original_shape)
+            numpy_image = numpy_image.squeeze()
             shape = numpy_image.shape
+            if original_shape != shape:
+                logging.info("squeezed to: %r", shape)
+            vtk_image = vtk.vtkImageData()
+
 
             if len(shape) >= 3:
                 shape3d = shape[-3:]  # just the last 3 dimensions
@@ -107,6 +122,12 @@ class NumpyDataLoaderFileReader:
             slicer.util.arrayFromVolumeModified(scalar_volume)
 
             scalar_volume.CreateDefaultDisplayNodes()
+
+            appLogic = slicer.app.applicationLogic()
+            selNode = appLogic.GetSelectionNode()
+            selNode.SetReferenceActiveVolumeID(scalar_volume.GetID())
+            appLogic.PropagateVolumeSelection()
+            appLogic.FitSliceToAll()
 
         except Exception as e:
             logging.error("Failed to load numpy data file: " + str(e))
