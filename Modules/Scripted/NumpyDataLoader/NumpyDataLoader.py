@@ -119,7 +119,10 @@ class NumpyDataLoaderFileReader:
                 node_array[:] = numpy_image[idx]
             else:
                 node_array[:] = numpy_image
-            slicer.util.arrayFromVolumeModified(scalar_volume)
+
+            # to make it seamlessly overlay on images, set LPS orientation
+            lpsIdentity = slicer.util.vtkMatrixFromArray(numpy.diag([-1, -1, 1, 1]))  # LPS <-> RAS
+            scalar_volume.SetIJKToRASMatrix(lpsIdentity)
 
             scalar_volume.CreateDefaultDisplayNodes()
 
