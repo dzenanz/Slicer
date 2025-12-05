@@ -535,11 +535,11 @@ int TestVTKBSplineParametersFromITK(const char* tempDir, vtkMRMLScene* scene)
   // Write the 3D transform to a new temporary file to ease debugging
   tempFilePath = tempFilename(tempDir, "BSpline3D", "tfm", true);
   // Writing needs inversion, I don't know how to force it here
-  // if (writeTransformUsingSlicer(vtkTransform, tempFilePath, scene) != EXIT_SUCCESS)
-  //{
-  //  std::cerr << "Failed to write transform to file: " << tempFilePath << std::endl;
-  //  return EXIT_FAILURE;
-  //}
+  if (writeTransformUsingSlicer(vtkTransform, tempFilePath, scene) != EXIT_SUCCESS)
+  {
+    std::cerr << "Failed to write transform to file: " << tempFilePath << std::endl;
+    return EXIT_FAILURE;
+  }
 
   constexpr double tol = 1000 * std::max<double>(std::numeric_limits<T>::epsilon(), std::numeric_limits<itk::SpacePrecisionType>::epsilon());
 
