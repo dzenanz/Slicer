@@ -525,12 +525,16 @@ int TestVTKBSplineParametersFromITK(const char* tempDir, vtkMRMLScene* scene)
   // Now read back the displacement field image from the file using Slicer machinery
   vtkMRMLTransformNode* readTransformNode = readTransformUsingSlicer<vtkMRMLTransformNode>(tempFilePath, scene);
 
-  vtkOrientedBSplineTransform* vtkTransform = vtkOrientedBSplineTransform::SafeDownCast(readTransformNode->GetTransformFromParent());
+  // For writing we need inversion, so make sure it gets inverted before writing by inverting it twice here
+  vtkOrientedBSplineTransform* vtkTransform = vtkOrientedBSplineTransform::SafeDownCast(readTransformNode->GetTransformToParent());
   if (!vtkTransform)
   {
     std::cerr << "Converting to vtkOrientedBSplineTransform failed." << std::endl;
     return EXIT_FAILURE;
   }
+
+  vtkTransform->Inverse();
+  vtkTransform->TransformPoint(1.0, 2.0, 3.0); // to ensure internal update
 
   // Write the 3D transform to a new temporary file to ease debugging
   tempFilePath = tempFilename(tempDir, "BSpline3D", "tfm", true);
